@@ -61,10 +61,8 @@ function log(msg) {
  * Pass capture:true to return stdout as a string instead.
  */
 function exec(cmd, { cwd = WORKSPACE, capture = false } = {}) {
-  const display = cmd.replace(
-    /(https?:\/\/)[^:@\s]+(?=:[^@\s]*@)/,
-    "$1***"
-  );
+  // Mask any GitHub token embedded in HTTPS URLs (https://TOKEN@github.com).
+  const display = cmd.replace(/https:\/\/[^@\s]+@github\.com/g, "https://***@github.com");
   console.log(`    $ ${display}`);
   return execSync(cmd, {
     cwd,
@@ -193,7 +191,17 @@ Begin building now. Create the files.
       ],
       {
         cwd: slugDir,
-        env: process.env,
+        // Pass only what the agent needs — don't expose Trello/GitHub tokens.
+        env: {
+          ...process.env,
+          TRELLO_KEY: undefined,
+          TRELLO_TOKEN: undefined,
+          TRELLO_IDEAS_LIST_ID: undefined,
+          TRELLO_DONE_LIST_ID: undefined,
+          GITHUB_TOKEN: undefined,
+          GITHUB_USERNAME: undefined,
+          IDEA_MVPS_REPO: undefined,
+        },
         shell: true,   // needed on Windows so PATH resolves correctly
         stdio: ["pipe", "pipe", "pipe"],
       }
@@ -433,12 +441,9 @@ async function createOrUpdatePR(slug, mvpBuildPrompt) {
   });
   if (!mergeRes.ok) {
     const errText = await mergeRes.text();
-    // Non-fatal — PR exists, user can merge manually if auto-merge fails.
-    log(`⚠  Auto-merge failed (${mergeRes.status}): ${errText}`);
-    log(`   Merge manually at: ${pr.html_url}`);
-  } else {
-    log(`✓ PR auto-merged.`);
+    throw new Error(`Auto-merge failed (${mergeRes.status}): ${errText}\nPR is open at ${pr.html_url} — merge it manually to continue.`);
   }
+  log(`✓ PR auto-merged.`);
 
   return pr.html_url;
 }

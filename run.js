@@ -151,19 +151,24 @@ async function write(description, fn, mockReturn = null) {
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
-/** Convert a card name to a URL-safe slug. */
+/** Convert a card name to a URL-safe slug. Throws if name has no alphanumeric characters. */
 function toSlug(name) {
-  return name
+  const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
+  if (!slug) {
+    throw new Error(`Card name "${name}" produces an empty slug — rename it to include letters or numbers.`);
+  }
+  return slug;
 }
 
-/** Extract PR number from a GitHub PR URL. */
+/** Extract PR number from a GitHub PR URL. Throws if URL format is unexpected. */
 function prNumberFromUrl(url) {
   const m = url.match(/\/pull\/(\d+)$/);
-  return m ? parseInt(m[1], 10) : null;
+  if (!m) throw new Error(`Could not extract PR number from URL: ${url}`);
+  return parseInt(m[1], 10);
 }
 
 // ─── Trello helpers ───────────────────────────────────────────────────────────
