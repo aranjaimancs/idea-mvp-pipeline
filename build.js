@@ -389,8 +389,54 @@ async function createOrUpdatePR(slug, mvpBuildPrompt) {
   const existing = await listRes.json();
 
   if (existing.length > 0) {
-    log(`Existing PR found: ${existing[0].html_url}`);
-    return existing[0].html_url;
+    const existingPr = existing[0];
+    log(`Existing open PR #${existingPr.number} found: ${existingPr.html_url}`);
+
+    // Check if it was already merged (state file may be stale).
+    const prCheckRes = await fetch(`${apiBase}/pulls/${existingPr.number}`, { headers });
+    const prData = prCheckRes.ok ? await prCheckRes.json() : {};
+    if (prData.merged_at) {
+      log(`PR #${existingPr.number} is already merged.`);
+      return existingPr.html_url;
+    }
+
+    // Not merged yet — fall through to the same polling + merge logic below
+    // by re-using the existing PR object as if we just created it.
+    log(`PR #${existingPr.number} is open and unmerged — attempting auto-merge…`);
+    const pr = existingPr;
+
+    // Poll mergeability then merge (same path as a freshly-created PR).
+    log("Waiting for GitHub to compute mergeability…");
+    let mergeable = null;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const checkRes = await fetch(`${apiBase}/pulls/${pr.number}`, { headers });
+      if (!checkRes.ok) break;
+      const checkPr = await checkRes.json();
+      if (checkPr.mergeable !== null) {
+        mergeable = checkPr.mergeable;
+        break;
+      }
+      log(`  mergeability still computing… (${attempt + 1}/12)`);
+    }
+    if (mergeable === false) {
+      throw new Error(`PR #${pr.number} has merge conflicts — manual inspection needed: ${pr.html_url}`);
+    }
+
+    const mergeRes2 = await fetch(`${apiBase}/pulls/${pr.number}/merge`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        merge_method: "squash",
+        commit_title: `feat(${slug}): add MVP prototype (#${pr.number})`,
+      }),
+    });
+    if (!mergeRes2.ok) {
+      const errText = await mergeRes2.text();
+      throw new Error(`Auto-merge failed (${mergeRes2.status}): ${errText}`);
+    }
+    log(`✓ PR #${pr.number} auto-merged.`);
+    return pr.html_url;
   }
 
   // Build the PR body.

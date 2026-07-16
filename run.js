@@ -252,7 +252,17 @@ async function ensureLabel(boardId, name, color) {
   return created.id;
 }
 
-// ─── GitHub helper ────────────────────────────────────────────────────────────
+// ─── GitHub helpers ───────────────────────────────────────────────────────────
+
+function githubHeaders() {
+  return {
+    Authorization: `Bearer ${GITHUB_TOKEN}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "Content-Type": "application/json",
+    "User-Agent": "idea-mvp-pipeline",
+  };
+}
 
 /**
  * Return true if the PR has been merged.
@@ -260,14 +270,7 @@ async function ensureLabel(boardId, name, color) {
  */
 async function isPRMerged(prNumber) {
   const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${IDEA_MVPS_REPO}/pulls/${prNumber}`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${GITHUB_TOKEN}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "idea-mvp-pipeline",
-    },
-  });
+  const res = await fetch(url, { headers: githubHeaders() });
   if (!res.ok) {
     throw new Error(`GitHub API PR check → ${res.status}: ${await res.text()}`);
   }
@@ -275,9 +278,77 @@ async function isPRMerged(prNumber) {
   return Boolean(pr.merged_at);
 }
 
+/**
+ * Find an open PR for the given branch (slug) name.
+ * Returns the PR object or null if none exists.
+ */
+async function findOpenPrForSlug(slug) {
+  const url =
+    `https://api.github.com/repos/${GITHUB_USERNAME}/${IDEA_MVPS_REPO}/pulls` +
+    `?head=${encodeURIComponent(GITHUB_USERNAME)}:${encodeURIComponent(slug)}&state=open`;
+  const res = await fetch(url, { headers: githubHeaders() });
+  if (!res.ok) return null;
+  const prs = await res.json();
+  return prs.length > 0 ? prs[0] : null;
+}
+
+/**
+ * Attempt to squash-merge a PR. Returns true on success, false otherwise.
+ */
+async function mergePr(prNumber, slug) {
+  const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${IDEA_MVPS_REPO}/pulls/${prNumber}/merge`;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: githubHeaders(),
+    body: JSON.stringify({
+      merge_method: "squash",
+      commit_title: `feat(${slug}): add MVP prototype (#${prNumber})`,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    console.warn(`  ⚠  Merge API returned ${res.status}: ${text}`);
+    return false;
+  }
+  return true;
+}
+
 // ─── Phase A: Resume in-flight pr_open cards ─────────────────────────────────
 
 async function phaseA(state) {
+  // ── Recovery: find "building" cards that have an orphaned open PR ─────────
+  // This happens when a previous run created the PR but failed to merge it,
+  // leaving the card in "building" state with the "mvp-building" Trello label.
+  // Phase B/C never sees these cards because of the label filter, so we rescue
+  // them here and transition them to "pr_open" so the main loop below handles them.
+  const buildingCards = Object.entries(state.cards).filter(
+    ([, entry]) => entry.state === "building"
+  );
+  if (buildingCards.length > 0) {
+    console.log(`  Checking ${buildingCards.length} "building" card(s) for orphaned PRs…`);
+    for (const [cardId, entry] of buildingCards) {
+      let pr;
+      try {
+        pr = await findOpenPrForSlug(entry.slug);
+      } catch (err) {
+        console.warn(`  ⚠  Could not query GitHub for slug "${entry.slug}": ${err.message}`);
+        continue;
+      }
+      if (!pr) {
+        console.log(`  No open PR found for "${entry.name}" — still building.`);
+        continue;
+      }
+      console.log(`  Found orphaned PR #${pr.number} for "${entry.name}" — transitioning to pr_open.`);
+      entry.state = "pr_open";
+      entry.prUrl = pr.html_url;
+      entry.prNumber = pr.number;
+      entry.previewUrl = `https://${GITHUB_USERNAME}.github.io/${IDEA_MVPS_REPO}/${entry.slug}/`;
+      entry.prOpenedAt = new Date().toISOString();
+      saveState(state);
+    }
+  }
+
+  // ── Main loop: handle all pr_open cards ───────────────────────────────────
   const prOpenCards = Object.entries(state.cards).filter(
     ([, entry]) => entry.state === "pr_open"
   );
@@ -302,8 +373,24 @@ async function phaseA(state) {
     }
 
     if (!merged) {
-      console.log("  PR is not yet merged — nothing to do this run.");
-      continue;
+      // PR exists but wasn't merged — try to merge it now.
+      console.log("  PR is not yet merged — attempting auto-merge…");
+      const ok = await write(
+        `merge PR #${entry.prNumber} for "${entry.name}"`,
+        () => mergePr(entry.prNumber, entry.slug)
+      );
+      if (!ok) {
+        console.log("  ⚠  Auto-merge failed — will retry next run.");
+        continue;
+      }
+      // Confirm merged_at is now set.
+      try {
+        merged = await isPRMerged(entry.prNumber);
+      } catch { /* ignore — treat as unmerged */ }
+      if (!merged) {
+        console.log("  ⚠  Merge API succeeded but PR still shows unmerged — will retry next run.");
+        continue;
+      }
     }
 
     console.log("  ✅ PR is merged! Prepending preview URL to description…");
