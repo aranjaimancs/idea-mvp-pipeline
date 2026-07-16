@@ -10,6 +10,13 @@
       "prNumber": 6,
       "previewUrl": "https://aranjaimancs.github.io/idea-mvps/joke-generator/",
       "prOpenedAt": "2026-07-16T17:15:16.368Z"
+    },
+    "6a5911cb21eb7f7c2aca1400": {
+      "slug": "dad-joke-generator",
+      "name": "dad joke generator",
+      "state": "building",
+      "startedAt": "2026-07-16T17:16:33.336Z",
+      "mvpBuildingLabelId": "6a57cdf720270e7775b76019"
     }
   }
 }
