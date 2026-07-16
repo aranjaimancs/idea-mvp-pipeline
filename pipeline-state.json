@@ -1,0 +1,15 @@
+{
+  "cards": {
+    "6a591018657c5141b866cfe1": {
+      "slug": "joke-generator",
+      "name": "joke generator",
+      "state": "pr_open",
+      "startedAt": "2026-07-16T17:13:51.302Z",
+      "mvpBuildingLabelId": "6a57cdf720270e7775b76019",
+      "prUrl": "https://github.com/aranjaimancs/idea-mvps/pull/6",
+      "prNumber": 6,
+      "previewUrl": "https://aranjaimancs.github.io/idea-mvps/joke-generator/",
+      "prOpenedAt": "2026-07-16T17:15:16.368Z"
+    }
+  }
+}
