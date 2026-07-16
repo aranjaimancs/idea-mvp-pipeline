@@ -23,6 +23,18 @@
       "previewUrl": "https://aranjaimancs.github.io/idea-mvps/joke-generator/",
       "prOpenedAt": "2026-07-16T15:25:15.090Z",
       "doneAt": "2026-07-16T15:25:16.763Z"
+    },
+    "6a58f980f0284948ba7b4882": {
+      "slug": "perspective-shift",
+      "name": "perspective shift",
+      "state": "done",
+      "startedAt": "2026-07-16T15:33:16.796Z",
+      "mvpBuildingLabelId": "6a57cdf720270e7775b76019",
+      "prUrl": "https://github.com/aranjaimancs/idea-mvps/pull/5",
+      "prNumber": 5,
+      "previewUrl": "https://aranjaimancs.github.io/idea-mvps/perspective-shift/",
+      "prOpenedAt": "2026-07-16T15:35:24.653Z",
+      "doneAt": "2026-07-16T15:35:26.104Z"
     }
   }
 }
