@@ -29,6 +29,18 @@
       "state": "building",
       "startedAt": "2026-07-16T17:43:52.442Z",
       "mvpBuildingLabelId": "6a57cdf720270e7775b76019"
+    },
+    "6a5f66b47e08742bd47f5bc3": {
+      "slug": "travel-agent-app-for-my-family",
+      "name": "Travel Agent App for my family",
+      "state": "done",
+      "startedAt": "2026-07-21T12:48:59.755Z",
+      "mvpBuildingLabelId": "6a57cdf720270e7775b76019",
+      "prUrl": "https://github.com/aranjaimancs/idea-mvps/pull/8",
+      "prNumber": 8,
+      "previewUrl": "https://aranjaimancs.github.io/idea-mvps/travel-agent-app-for-my-family/",
+      "prOpenedAt": "2026-07-21T12:52:05.246Z",
+      "doneAt": "2026-07-21T12:52:08.958Z"
     }
   }
 }
