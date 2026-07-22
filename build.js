@@ -185,7 +185,7 @@ Begin building now. Create the files.
         "--verbose",
         "--output-format", "stream-json",
         "--permission-mode", "bypassPermissions",
-        "--max-budget-usd", "2",
+        "--max-budget-usd", "5",
         // "--bare" is for CI only (API-key-only auth, no keychain).
         ...(process.env.CI ? ["--bare"] : []),
       ],
