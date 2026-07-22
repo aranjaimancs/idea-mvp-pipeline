@@ -39,13 +39,21 @@
     "6a60f2c6f7f8e6261da9e6f4": {
       "slug": "agentic-workflow-for-website-building-for-small-businesses",
       "name": "Agentic workflow for website building for small businesses",
-      "state": "pr_open",
+      "state": "done",
       "startedAt": "2026-07-22T20:49:39.765Z",
       "mvpBuildingLabelId": "6a57cdf720270e7775b76019",
       "prUrl": "https://github.com/aranjaimancs/idea-mvps/pull/10",
       "prNumber": 10,
       "previewUrl": "https://aranjaimancs.github.io/idea-mvps/agentic-workflow-for-website-building-for-small-businesses/",
-      "prOpenedAt": "2026-07-22T20:50:40.232Z"
+      "prOpenedAt": "2026-07-22T20:50:40.232Z",
+      "doneAt": "2026-07-22T21:00:07.368Z"
+    },
+    "6a612724c0f380aad9da6840": {
+      "slug": "agentic-workflow-for-website-building-for-small-businesses-s",
+      "name": "Agentic workflow for website building for small businesses side hustle",
+      "state": "building",
+      "startedAt": "2026-07-22T21:00:07.994Z",
+      "mvpBuildingLabelId": "6a57cdf720270e7775b76019"
     }
   }
 }
