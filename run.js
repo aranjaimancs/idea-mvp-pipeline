@@ -26,7 +26,8 @@
  */
 
 import "dotenv/config";
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { execSync } from "child_process";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -313,6 +314,47 @@ async function mergePr(prNumber, slug) {
   return true;
 }
 
+// ─── Git helpers ──────────────────────────────────────────────────────────────
+
+const WORKSPACE = join(__dirname, "workspace");
+
+/**
+ * Rebase an existing PR branch onto origin/main and force-push it.
+ * Used to resolve merge conflicts on stalled PRs without re-running Claude.
+ */
+async function rebasePrBranch(slug) {
+  const repoUrl = `https://${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/${IDEA_MVPS_REPO}.git`;
+
+  const gitExec = (cmd) => {
+    const display = cmd.replace(/https:\/\/[^@\s]+@github\.com/g, "https://***@github.com");
+    console.log(`    $ ${display}`);
+    execSync(cmd, { cwd: WORKSPACE, stdio: "inherit", encoding: "utf8" });
+  };
+
+  if (existsSync(join(WORKSPACE, ".git"))) {
+    gitExec(`git remote set-url origin "${repoUrl}"`);
+    gitExec("git fetch origin");
+  } else {
+    mkdirSync(WORKSPACE, { recursive: true });
+    gitExec(`git clone "${repoUrl}" .`);
+  }
+
+  gitExec(`git config user.email "idea-pipeline@local"`);
+  gitExec(`git config user.name "Idea Pipeline"`);
+  gitExec(`git checkout -B "${slug}" "origin/${slug}"`);
+  gitExec("git fetch origin main");
+
+  try {
+    gitExec("git rebase origin/main");
+  } catch {
+    gitExec("git rebase --abort");
+    throw new Error(`Rebase failed for branch "${slug}" — conflicts need manual resolution.`);
+  }
+
+  gitExec(`git push -u origin "${slug}" --force-with-lease`);
+  console.log("  ✓ Rebase and push successful.");
+}
+
 // ─── Phase A: Resume in-flight pr_open cards ─────────────────────────────────
 
 async function phaseA(state) {
@@ -335,7 +377,26 @@ async function phaseA(state) {
         continue;
       }
       if (!pr) {
-        console.log(`  No open PR found for "${entry.name}" — still building.`);
+        const minutesBuilding = entry.startedAt
+          ? (Date.now() - new Date(entry.startedAt).getTime()) / 60000
+          : Infinity;
+        if (minutesBuilding < 20) {
+          console.log(`  No open PR found for "${entry.name}" — still building (${Math.round(minutesBuilding)}m). Waiting…`);
+          continue;
+        }
+        // Stuck for 20+ minutes with no PR — the build crashed. Re-queue it.
+        console.log(`  "${entry.name}" stuck in "building" for ${Math.round(minutesBuilding)}m with no PR — re-queuing build.`);
+        let trelloCard;
+        try {
+          trelloCard = await trelloGet(`/cards/${cardId}`, { fields: "id,name,desc,labels" });
+        } catch (err) {
+          console.warn(`  ⚠  Could not fetch card ${cardId} from Trello: ${err.message} — skipping.`);
+          continue;
+        }
+        // Clear state so processSingleCard starts fresh.
+        delete state.cards[cardId];
+        saveState(state);
+        await processSingleCard(trelloCard, state, entry.mvpBuildingLabelId);
         continue;
       }
       console.log(`  Found orphaned PR #${pr.number} for "${entry.name}" — transitioning to pr_open.`);
@@ -375,13 +436,35 @@ async function phaseA(state) {
     if (!merged) {
       // PR exists but wasn't merged — try to merge it now.
       console.log("  PR is not yet merged — attempting auto-merge…");
-      const ok = await write(
+      let ok = await write(
         `merge PR #${entry.prNumber} for "${entry.name}"`,
         () => mergePr(entry.prNumber, entry.slug)
       );
       if (!ok) {
-        console.log("  ⚠  Auto-merge failed — will retry next run.");
-        continue;
+        // Merge failed — attempt a rebase onto main to resolve potential conflicts.
+        console.log("  ⚠  Auto-merge failed — attempting rebase onto main to resolve conflicts…");
+        let rebaseOk = false;
+        try {
+          await write(
+            `rebase branch "${entry.slug}" onto origin/main`,
+            () => rebasePrBranch(entry.slug)
+          );
+          rebaseOk = true;
+        } catch (rebaseErr) {
+          console.warn(`  ⚠  Rebase failed: ${rebaseErr.message}`);
+        }
+        if (rebaseOk) {
+          // Give GitHub a moment to re-compute mergeability after the force-push.
+          await new Promise((r) => setTimeout(r, 5000));
+          ok = await write(
+            `merge PR #${entry.prNumber} for "${entry.name}" (post-rebase)`,
+            () => mergePr(entry.prNumber, entry.slug)
+          );
+        }
+        if (!ok) {
+          console.log("  ⚠  Auto-merge failed — will retry next run.");
+          continue;
+        }
       }
       // Confirm merged_at is now set.
       try {
