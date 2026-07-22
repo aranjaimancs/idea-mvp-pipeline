@@ -108,20 +108,13 @@ async function ensureRepo() {
 async function setupSlugDir(slug) {
   step(2, `Setting up branch '${slug}' and directory ./workspace/${slug}`);
 
-  // Fetch remote branches so we can detect if this one already exists.
+  // Always create the branch fresh from origin/main — this guarantees the
+  // rebase in commitAndPush() is conflict-free, even if a previous build for
+  // this slug was already merged into main. We force-push anyway, so the
+  // remote branch content doesn't matter.
   exec("git fetch origin --prune", { capture: false });
-  const remoteBranches = exec("git branch -r", { capture: true });
-  const branchExistsRemotely = remoteBranches
-    .split("\n")
-    .some((b) => b.trim() === `origin/${slug}`);
-
-  if (branchExistsRemotely) {
-    log(`Branch 'origin/${slug}' exists remotely — checking it out.`);
-    exec(`git checkout -B "${slug}" "origin/${slug}"`);
-  } else {
-    log(`Creating new branch '${slug}' from main.`);
-    exec(`git checkout -B "${slug}"`);
-  }
+  log(`Creating branch '${slug}' from origin/main.`);
+  exec(`git checkout -B "${slug}" origin/main`);
 
   const slugDir = join(WORKSPACE, slug);
   if (!existsSync(slugDir)) {

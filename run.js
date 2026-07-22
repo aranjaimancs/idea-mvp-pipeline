@@ -390,7 +390,10 @@ async function phaseA(state) {
         try {
           trelloCard = await trelloGet(`/cards/${cardId}`, { fields: "id,name,desc,labels" });
         } catch (err) {
-          console.warn(`  ⚠  Could not fetch card ${cardId} from Trello: ${err.message} — skipping.`);
+          console.warn(`  ⚠  Could not fetch card ${cardId} from Trello: ${err.message}`);
+          console.warn(`  Removing from state to prevent repeated retries.`);
+          delete state.cards[cardId];
+          saveState(state);
           continue;
         }
         // Clear state so processSingleCard starts fresh.
