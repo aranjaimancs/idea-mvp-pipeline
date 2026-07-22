@@ -3,13 +3,14 @@
     "6a591018657c5141b866cfe1": {
       "slug": "joke-generator",
       "name": "joke generator",
-      "state": "pr_open",
+      "state": "done",
       "startedAt": "2026-07-16T17:13:51.302Z",
       "mvpBuildingLabelId": "6a57cdf720270e7775b76019",
       "prUrl": "https://github.com/aranjaimancs/idea-mvps/pull/6",
       "prNumber": 6,
       "previewUrl": "https://aranjaimancs.github.io/idea-mvps/joke-generator/",
-      "prOpenedAt": "2026-07-16T17:15:16.368Z"
+      "prOpenedAt": "2026-07-16T17:15:16.368Z",
+      "doneAt": "2026-07-22T20:50:41.776Z"
     },
     "6a5911cb21eb7f7c2aca1400": {
       "slug": "dad-joke-generator",
@@ -23,13 +24,6 @@
       "prOpenedAt": "2026-07-16T17:43:44.479Z",
       "doneAt": "2026-07-16T17:43:49.708Z"
     },
-    "6a591343276a709f2e688e63": {
-      "slug": "dad-joke-generator",
-      "name": "dad joke generator",
-      "state": "building",
-      "startedAt": "2026-07-16T17:43:52.442Z",
-      "mvpBuildingLabelId": "6a57cdf720270e7775b76019"
-    },
     "6a5f66b47e08742bd47f5bc3": {
       "slug": "travel-agent-app-for-my-family",
       "name": "Travel Agent App for my family",
@@ -42,12 +36,24 @@
       "prOpenedAt": "2026-07-21T12:52:05.246Z",
       "doneAt": "2026-07-21T12:52:08.958Z"
     },
+    "6a591343276a709f2e688e63": {
+      "slug": "dad-joke-generator",
+      "name": "dad joke generator",
+      "state": "building",
+      "startedAt": "2026-07-22T20:48:11.309Z",
+      "mvpBuildingLabelId": "6a57cdf720270e7775b76019"
+    },
     "6a60f2c6f7f8e6261da9e6f4": {
       "slug": "agentic-workflow-for-website-building-for-small-businesses",
       "name": "Agentic workflow for website building for small businesses",
-      "state": "building",
-      "startedAt": "2026-07-22T17:39:03.823Z",
-      "mvpBuildingLabelId": "6a57cdf720270e7775b76019"
+      "state": "done",
+      "startedAt": "2026-07-22T20:49:39.765Z",
+      "mvpBuildingLabelId": "6a57cdf720270e7775b76019",
+      "prUrl": "https://github.com/aranjaimancs/idea-mvps/pull/10",
+      "prNumber": 10,
+      "previewUrl": "https://aranjaimancs.github.io/idea-mvps/agentic-workflow-for-website-building-for-small-businesses/",
+      "prOpenedAt": "2026-07-22T20:50:40.232Z",
+      "doneAt": "2026-07-22T20:50:43.334Z"
     }
   }
 }
